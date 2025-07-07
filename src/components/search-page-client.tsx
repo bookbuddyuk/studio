@@ -18,26 +18,138 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { findBooksWithAi, findRandomBookWithAi, searchBooksByKeyword } from '@/app/search/actions';
 import type { Book } from '@/lib/types';
 
+// Schemas
 const aiSearchSchema = z.object({
   description: z.string().min(10, "Please provide a more detailed description.").max(500),
 });
 
 const randomSearchSchema = z.object({
-  category: z.string({ required_error: "Please select a category."}),
-  genre: z.string({ required_error: "Please select a genre."}),
-  readingAge: z.string({ required_error: "Please select a reading age."}),
+  category: z.string({ required_error: "Please select a category." }),
+  genre: z.string({ required_error: "Please select a genre." }),
+  readingAge: z.string({ required_error: "Please select a reading age." }),
 });
 
 const keywordSearchSchema = z.object({
   query: z.string().min(1, "Please enter a search term."),
 });
 
+// Constants
 const categories = ["Fiction", "Non-Fiction", "Picture Book", "Early Reader"];
 const genres = ["Adventure", "Fantasy", "Science Fiction", "Mystery", "Humor", "Animals"];
 const ageRanges = ["0-2 years", "3-5 years", "6-8 years", "9-12 years"];
 
+// Helper Components
+const BookCardSkeleton = () => (
+  <div className="space-y-4">
+    <Skeleton className="h-12 w-3/4" />
+    <Skeleton className="h-6 w-1/2" />
+    <Skeleton className="aspect-[3/4] w-full" />
+    <Skeleton className="h-20 w-full" />
+  </div>
+);
+
+const KeywordResults = ({ isPending, error, results }: { isPending: boolean; error: string | null; results: Book[] | null; }) => {
+  if (isPending) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {Array.from({ length: 8 }).map((_, i) => <BookCardSkeleton key={i} />)}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <Frown className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (results === null) {
+    return <p className="text-muted-foreground">Enter a search term to find books. Try "Harry Potter".</p>;
+  }
+  
+  if (results.length === 0) {
+    return <p className="text-muted-foreground">No books found for your search. Try different keywords.</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {results.map((book, index) => <BookCard key={`${book.title}-${index}`} book={book} />)}
+    </div>
+  );
+};
+
+const AiResults = ({ isPending, error, results }: { isPending: boolean; error: string | null; results: Book[] | null; }) => {
+  if (isPending) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {Array.from({ length: 4 }).map((_, i) => <BookCardSkeleton key={i} />)}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <Frown className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (results === null) {
+    return <p className="text-muted-foreground">Your AI-powered book suggestions will appear here.</p>;
+  }
+
+  if (results.length === 0) {
+    return <p className="text-muted-foreground">The AI couldn't find any matches. Try a different description.</p>;
+  }
+  
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {results.map((book, index) => <BookCard key={`${book.title}-${index}`} book={book} />)}
+    </div>
+  );
+};
+
+
+const RandomResult = ({ isPending, error, result }: { isPending: boolean; error: string | null; result: Book | null; }) => {
+    if (isPending) {
+        return (
+            <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
+                <BookCardSkeleton />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <Alert variant="destructive">
+                <Frown className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+        );
+    }
+    
+    if (result === null) {
+        return <p className="text-muted-foreground">Your random book suggestion will appear here.</p>;
+    }
+
+    return (
+        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
+            <BookCard book={result} />
+        </div>
+    );
+};
+
+
 export function SearchPageClient() {
-  const [isPending, startTransition] = useTransition();
+  const [isAiPending, startAiTransition] = useTransition();
   const [aiResults, setAiResults] = useState<Book[] | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -64,7 +176,7 @@ export function SearchPageClient() {
   });
 
   const handleAiSearch = (values: z.infer<typeof aiSearchSchema>) => {
-    startTransition(async () => {
+    startAiTransition(async () => {
       setAiError(null);
       setAiResults(null);
       try {
@@ -76,6 +188,8 @@ export function SearchPageClient() {
             aiHint: 'book cover'
           }));
           setAiResults(formattedResults);
+        } else {
+          setAiResults([]);
         }
       } catch (error) {
         setAiError(error instanceof Error ? error.message : "An unknown error occurred.");
@@ -96,6 +210,8 @@ export function SearchPageClient() {
             aiHint: 'book cover'
           };
           setRandomBookResult(formattedResult);
+        } else {
+          setRandomBookResult(null);
         }
       } catch (error) {
         setRandomBookError(error instanceof Error ? error.message : "An unknown error occurred.");
@@ -123,6 +239,8 @@ export function SearchPageClient() {
           <TabsTrigger value="keyword">Keyword Search</TabsTrigger>
           <TabsTrigger value="ai">AI Book Finder</TabsTrigger>
         </TabsList>
+        
+        {/* Keyword Search Tab */}
         <TabsContent value="keyword" className="mt-6">
           <div className="rounded-lg border bg-card p-6 shadow-sm">
             <h2 className="text-2xl font-bold font-headline mb-4">Search the Database</h2>
@@ -148,37 +266,11 @@ export function SearchPageClient() {
           </div>
           <div className="mt-8">
             <h3 className="text-xl font-bold mb-4">Results</h3>
-            {isKeywordPending && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="space-y-4">
-                    <Skeleton className="h-12 w-3/4" />
-                    <Skeleton className="h-6 w-1/2" />
-                    <Skeleton className="aspect-[3/4] w-full" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                ))}
-              </div>
-            )}
-            {keywordError && (
-              <Alert variant="destructive">
-                <Frown className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{keywordError}</AlertDescription>
-              </Alert>
-            )}
-            {keywordResults && keywordResults.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {keywordResults.map((book, index) => <BookCard key={`${book.title}-${index}`} book={book} />)}
-                </div>
-            ) : keywordResults && (
-                <p className="text-muted-foreground">No books found for your search. Try different keywords.</p>
-            )}
-            {!isKeywordPending && !keywordResults && !keywordError && (
-                <p className="text-muted-foreground">Enter a search term to find books. Try "Harry Potter".</p>
-            )}
+            <KeywordResults isPending={isKeywordPending} error={keywordError} results={keywordResults} />
           </div>
         </TabsContent>
+
+        {/* AI Finder Tab */}
         <TabsContent value="ai" className="mt-6">
           <div className="rounded-lg border bg-card p-6 shadow-sm">
             <h2 className="text-2xl font-bold font-headline mb-2">AI Book Finder</h2>
@@ -197,44 +289,15 @@ export function SearchPageClient() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" disabled={isPending} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                  {isPending ? "Thinking..." : <><Sparkles className="mr-2 h-4 w-4" /> Find Books</>}
+                <Button type="submit" disabled={isAiPending} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  {isAiPending ? "Thinking..." : <><Sparkles className="mr-2 h-4 w-4" /> Find Books</>}
                 </Button>
               </form>
             </Form>
           </div>
           <div className="mt-8">
             <h3 className="text-xl font-bold mb-4">AI Suggestions</h3>
-            {isPending && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="space-y-4">
-                    <Skeleton className="h-12 w-3/4" />
-                    <Skeleton className="h-6 w-1/2" />
-                    <Skeleton className="aspect-[3/4] w-full" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                ))}
-              </div>
-            )}
-            {aiError && (
-              <Alert variant="destructive">
-                <Frown className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{aiError}</AlertDescription>
-              </Alert>
-            )}
-            {aiResults && aiResults.length === 0 && (
-                <p className="text-muted-foreground">The AI couldn't find any matches. Try a different description.</p>
-            )}
-            {aiResults && aiResults.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {aiResults.map((book, index) => <BookCard key={`${book.title}-${index}`} book={book} />)}
-              </div>
-            )}
-            {!isPending && !aiResults && !aiError && (
-                <p className="text-muted-foreground">Your AI-powered book suggestions will appear here.</p>
-            )}
+            <AiResults isPending={isAiPending} error={aiError} results={aiResults} />
           </div>
 
           <div className="mt-8 rounded-lg border bg-card p-6 shadow-sm">
@@ -253,7 +316,7 @@ export function SearchPageClient() {
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
+                            </Trigger>
                           </FormControl>
                           <SelectContent>
                             {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -312,31 +375,7 @@ export function SearchPageClient() {
           </div>
           <div className="mt-8">
             <h3 className="text-xl font-bold mb-4">Your Random Suggestion</h3>
-            {isRandomPending && (
-              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
-                  <div className="space-y-4">
-                    <Skeleton className="h-12 w-3/4" />
-                    <Skeleton className="h-6 w-1/2" />
-                    <Skeleton className="aspect-[3/4] w-full" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-              </div>
-            )}
-            {randomBookError && (
-              <Alert variant="destructive">
-                <Frown className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{randomBookError}</AlertDescription>
-              </Alert>
-            )}
-            {randomBookResult && (
-              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
-                <BookCard book={randomBookResult} />
-              </div>
-            )}
-            {!isRandomPending && !randomBookResult && !randomBookError && (
-                <p className="text-muted-foreground">Your random book suggestion will appear here.</p>
-            )}
+            <RandomResult isPending={isRandomPending} error={randomBookError} result={randomBookResult} />
           </div>
         </TabsContent>
       </Tabs>
