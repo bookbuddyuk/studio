@@ -11,7 +11,7 @@ export function Header() {
           <span className="font-bold font-headline text-foreground">BookWise Beginnings</span>
         </Link>
         <Button asChild variant="ghost">
-          <Link href="/">
+          <Link href="/login">
             <LogIn className="mr-2 h-4 w-4" />
             Login
           </Link>
