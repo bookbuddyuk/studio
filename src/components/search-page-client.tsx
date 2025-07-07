@@ -305,7 +305,7 @@ export function SearchPageClient() {
                 <Frown className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{randomBookError}</AlertDescription>
-              </Aler>
+              </Alert>
             )}
             {randomBookResult && (
               <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
