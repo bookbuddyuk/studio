@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { generateBookCover } from './generate-book-cover';
 
 const RandomBookFinderInputSchema = z.object({
   category: z.string().describe('The category of the book (e.g., "Fiction", "Non-Fiction").'),
@@ -18,11 +19,15 @@ const RandomBookFinderInputSchema = z.object({
 });
 export type RandomBookFinderInput = z.infer<typeof RandomBookFinderInputSchema>;
 
-const RandomBookFinderOutputSchema = z.object({
-  title: z.string().describe('The title of the suggested book.'),
-  author: z.string().describe('The author of the suggested book.'),
-  description: z.string().describe('A short description of the book.'),
-  ageRange: z.string().describe('The age range the book is appropriate for.'),
+const RandomBookFinderTextOnlyOutputSchema = z.object({
+    title: z.string().describe('The title of the suggested book.'),
+    author: z.string().describe('The author of the suggested book.'),
+    description: z.string().describe('A short description of the book.'),
+    ageRange: z.string().describe('The age range the book is appropriate for.'),
+});
+
+const RandomBookFinderOutputSchema = RandomBookFinderTextOnlyOutputSchema.extend({
+  coverImage: z.string().describe("The generated book cover image as a data URI.").optional(),
 });
 export type RandomBookFinderOutput = z.infer<typeof RandomBookFinderOutputSchema>;
 
@@ -33,7 +38,7 @@ export async function randomBookFinder(input: RandomBookFinderInput): Promise<Ra
 const prompt = ai.definePrompt({
   name: 'randomBookFinderPrompt',
   input: {schema: RandomBookFinderInputSchema},
-  output: {schema: RandomBookFinderOutputSchema},
+  output: {schema: RandomBookFinderTextOnlyOutputSchema},
   prompt: `You are a helpful assistant that suggests a random book for children.
 
   Suggest one single book that is in the genre '{{{genre}}}' and the category '{{{category}}}' and is appropriate for the age range '{{{readingAge}}}'.
@@ -48,7 +53,16 @@ const randomBookFinderFlow = ai.defineFlow(
     outputSchema: RandomBookFinderOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const {output: bookDetails} = await prompt(input);
+    if (!bookDetails) {
+        throw new Error("Could not generate book details.");
+    }
+
+    const { coverImage } = await generateBookCover({
+        title: bookDetails.title,
+        description: bookDetails.description,
+    });
+
+    return { ...bookDetails, coverImage };
   }
 );

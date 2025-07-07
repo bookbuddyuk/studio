@@ -76,7 +76,7 @@ export function SearchPageClient() {
         if (result && result.suggestions) {
           const formattedResults: Book[] = result.suggestions.map(s => ({
             ...s,
-            coverImage: `https://placehold.co/300x400.png`,
+            coverImage: s.coverImage || `https://placehold.co/300x400.png`,
             aiHint: 'book cover'
           }));
           setAiResults(formattedResults);
@@ -96,7 +96,7 @@ export function SearchPageClient() {
         if (result) {
           const formattedResult: Book = {
             ...result,
-            coverImage: `https://placehold.co/300x400.png`,
+            coverImage: result.coverImage || `https://placehold.co/300x400.png`,
             aiHint: 'book cover'
           };
           setRandomBookResult(formattedResult);
@@ -189,7 +189,7 @@ export function SearchPageClient() {
                   <div key={i} className="space-y-4">
                     <Skeleton className="h-12 w-3/4" />
                     <Skeleton className="h-6 w-1/2" />
-                    <Skeleton className="h-56 w-full" />
+                    <Skeleton className="aspect-[3/4] w-full" />
                     <Skeleton className="h-20 w-full" />
                   </div>
                 ))}
@@ -295,7 +295,7 @@ export function SearchPageClient() {
                   <div className="space-y-4">
                     <Skeleton className="h-12 w-3/4" />
                     <Skeleton className="h-6 w-1/2" />
-                    <Skeleton className="h-56 w-full" />
+                    <Skeleton className="aspect-[3/4] w-full" />
                     <Skeleton className="h-20 w-full" />
                   </div>
               </div>
@@ -305,7 +305,7 @@ export function SearchPageClient() {
                 <Frown className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{randomBookError}</AlertDescription>
-              </Alert>
+              </Aler>
             )}
             {randomBookResult && (
               <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">

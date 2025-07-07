@@ -8,7 +8,7 @@ export async function findBooksWithAi(description: string): Promise<AiBookFinder
     throw new Error('Description is required.');
   }
   try {
-    // The AI flow is called here.
+    // The AI flow is called here, which now includes image generation.
     const result = await aiBookFinder({ description });
     return result;
   } catch (error) {

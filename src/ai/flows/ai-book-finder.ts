@@ -10,19 +10,24 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { generateBookCover } from './generate-book-cover';
 
 const AiBookFinderInputSchema = z.object({
   description: z.string().describe('The description of the book the user is looking for (e.g., \"a book about animals for 5-year-olds\").'),
 });
 export type AiBookFinderInput = z.infer<typeof AiBookFinderInputSchema>;
 
+const BookSuggestionTextOnlySchema = z.object({
+    title: z.string().describe('The title of the suggested book.'),
+    author: z.string().describe('The author of the suggested book.'),
+    description: z.string().describe('A short description of the book.'),
+    ageRange: z.string().describe('The age range the book is appropriate for.'),
+});
+
 const AiBookFinderOutputSchema = z.object({
   suggestions: z.array(
-    z.object({
-      title: z.string().describe('The title of the suggested book.'),
-      author: z.string().describe('The author of the suggested book.'),
-      description: z.string().describe('A short description of the book.'),
-      ageRange: z.string().describe('The age range the book is appropriate for.'),
+    BookSuggestionTextOnlySchema.extend({
+        coverImage: z.string().describe("The generated book cover image as a data URI.").optional(),
     })
   ).describe('An array of book suggestions based on the user input.'),
 });
@@ -35,7 +40,7 @@ export async function aiBookFinder(input: AiBookFinderInput): Promise<AiBookFind
 const prompt = ai.definePrompt({
   name: 'aiBookFinderPrompt',
   input: {schema: AiBookFinderInputSchema},
-  output: {schema: AiBookFinderOutputSchema},
+  output: {schema: z.object({suggestions: z.array(BookSuggestionTextOnlySchema)})},
   prompt: `You are a helpful assistant that suggests books based on a description provided by the user.
 
   The user is looking for books described as: {{{description}}}.
@@ -51,6 +56,20 @@ const aiBookFinderFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output?.suggestions) {
+      return { suggestions: [] };
+    }
+
+    const suggestionsWithCovers = await Promise.all(
+      output.suggestions.map(async (suggestion) => {
+        const { coverImage } = await generateBookCover({
+          title: suggestion.title,
+          description: suggestion.description,
+        });
+        return { ...suggestion, coverImage };
+      })
+    );
+    
+    return { suggestions: suggestionsWithCovers };
   }
 );
