@@ -131,93 +131,6 @@ export function SearchPageClient() {
     });
   };
 
-  const renderKeywordResults = () => {
-    if (isKeywordPending) {
-      return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 8 }).map((_, i) => <BookCardSkeleton key={i} />)}
-        </div>
-      );
-    }
-    if (keywordError) {
-      return (
-        <Alert variant="destructive">
-          <Frown className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{keywordError}</AlertDescription>
-        </Alert>
-      );
-    }
-    if (keywordResults === null) {
-      return <p className="text-muted-foreground">Enter a search term to find books. Try "Harry Potter".</p>;
-    }
-    if (keywordResults.length === 0) {
-      return <p className="text-muted-foreground">No books found for your search. Try different keywords.</p>;
-    }
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {keywordResults.map((book, index) => <BookCard key={`${book.title}-${index}`} book={book} />)}
-      </div>
-    );
-  };
-  
-  const renderAiResults = () => {
-    if (isAiPending) {
-      return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 4 }).map((_, i) => <BookCardSkeleton key={i} />)}
-        </div>
-      );
-    }
-    if (aiError) {
-      return (
-        <Alert variant="destructive">
-          <Frown className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{aiError}</AlertDescription>
-        </Alert>
-      );
-    }
-    if (aiResults === null) {
-      return <p className="text-muted-foreground">Your AI-powered book suggestions will appear here.</p>;
-    }
-    if (aiResults.length === 0) {
-      return <p className="text-muted-foreground">The AI couldn't find any matches. Try a different description.</p>;
-    }
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {aiResults.map((book, index) => <BookCard key={`${book.title}-${index}`} book={book} />)}
-      </div>
-    );
-  };
-
-  const renderRandomResult = () => {
-    if (isRandomPending) {
-      return (
-        <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
-          <BookCardSkeleton />
-        </div>
-      );
-    }
-    if (randomBookError) {
-      return (
-        <Alert variant="destructive">
-          <Frown className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{randomBookError}</AlertDescription>
-        </Alert>
-      );
-    }
-    if (randomBookResult === null) {
-      return <p className="text-muted-foreground">Your random book suggestion will appear here.</p>;
-    }
-    return (
-      <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
-        <BookCard book={randomBookResult} />
-      </div>
-    );
-  };
-
   return (
     <div className="container py-8">
       <Tabs defaultValue="keyword" className="w-full">
@@ -251,7 +164,35 @@ export function SearchPageClient() {
           </div>
           <div className="mt-8">
             <h3 className="text-xl font-bold mb-4">Results</h3>
-            {renderKeywordResults()}
+            {(() => {
+              if (isKeywordPending) {
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {Array.from({ length: 8 }).map((_, i) => <BookCardSkeleton key={i} />)}
+                  </div>
+                );
+              }
+              if (keywordError) {
+                return (
+                  <Alert variant="destructive">
+                    <Frown className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{keywordError}</AlertDescription>
+                  </Alert>
+                );
+              }
+              if (keywordResults === null) {
+                return <p className="text-muted-foreground">Enter a search term to find books. Try "Harry Potter".</p>;
+              }
+              if (keywordResults.length === 0) {
+                return <p className="text-muted-foreground">No books found for your search. Try different keywords.</p>;
+              }
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {keywordResults.map((book, index) => <BookCard key={`${book.title}-${index}`} book={book} />)}
+                </div>
+              );
+            })()}
           </div>
         </TabsContent>
 
@@ -281,7 +222,35 @@ export function SearchPageClient() {
           </div>
           <div className="mt-8">
             <h3 className="text-xl font-bold mb-4">AI Suggestions</h3>
-            {renderAiResults()}
+            {(() => {
+              if (isAiPending) {
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {Array.from({ length: 4 }).map((_, i) => <BookCardSkeleton key={i} />)}
+                  </div>
+                );
+              }
+              if (aiError) {
+                return (
+                  <Alert variant="destructive">
+                    <Frown className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{aiError}</AlertDescription>
+                  </Alert>
+                );
+              }
+              if (aiResults === null) {
+                return <p className="text-muted-foreground">Your AI-powered book suggestions will appear here.</p>;
+              }
+              if (aiResults.length === 0) {
+                return <p className="text-muted-foreground">The AI couldn't find any matches. Try a different description.</p>;
+              }
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {aiResults.map((book, index) => <BookCard key={`${book.title}-${index}`} book={book} />)}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="mt-8 rounded-lg border bg-card p-6 shadow-sm">
@@ -359,7 +328,32 @@ export function SearchPageClient() {
           </div>
           <div className="mt-8">
             <h3 className="text-xl font-bold mb-4">Your Random Suggestion</h3>
-            {renderRandomResult()}
+            {(() => {
+              if (isRandomPending) {
+                return (
+                  <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
+                    <BookCardSkeleton />
+                  </div>
+                );
+              }
+              if (randomBookError) {
+                return (
+                  <Alert variant="destructive">
+                    <Frown className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{randomBookError}</AlertDescription>
+                  </Alert>
+                );
+              }
+              if (randomBookResult === null) {
+                return <p className="text-muted-foreground">Your random book suggestion will appear here.</p>;
+              }
+              return (
+                <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
+                  <BookCard book={randomBookResult} />
+                </div>
+              );
+            })()}
           </div>
         </TabsContent>
       </Tabs>
