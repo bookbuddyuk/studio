@@ -27,7 +27,7 @@ const RandomBookFinderTextOnlyOutputSchema = z.object({
 });
 
 const RandomBookFinderOutputSchema = RandomBookFinderTextOnlyOutputSchema.extend({
-  coverImage: z.string().describe("The generated book cover image as a data URI.").optional(),
+  coverImage: z.string().describe("The book cover image URL.").optional(),
 });
 export type RandomBookFinderOutput = z.infer<typeof RandomBookFinderOutputSchema>;
 
@@ -60,6 +60,7 @@ const randomBookFinderFlow = ai.defineFlow(
 
     const { coverImage } = await generateBookCover({
         title: bookDetails.title,
+        author: bookDetails.author,
         description: bookDetails.description,
     });
 

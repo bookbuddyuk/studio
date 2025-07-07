@@ -27,7 +27,7 @@ const BookSuggestionTextOnlySchema = z.object({
 const AiBookFinderOutputSchema = z.object({
   suggestions: z.array(
     BookSuggestionTextOnlySchema.extend({
-        coverImage: z.string().describe("The generated book cover image as a data URI.").optional(),
+        coverImage: z.string().describe("The book cover image URL.").optional(),
     })
   ).describe('An array of book suggestions based on the user input.'),
 });
@@ -64,6 +64,7 @@ const aiBookFinderFlow = ai.defineFlow(
       output.suggestions.map(async (suggestion) => {
         const { coverImage } = await generateBookCover({
           title: suggestion.title,
+          author: suggestion.author,
           description: suggestion.description,
         });
         return { ...suggestion, coverImage };

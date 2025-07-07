@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview Generates a book cover image using AI.
+ * @fileOverview Fetches a book cover image from the Google Books API.
  *
- * - generateBookCover - A function that generates a book cover image.
+ * - generateBookCover - A function that gets a book cover image.
  * - GenerateBookCoverInput - The input type for the generateBookCover function.
  * - GenerateBookCoverOutput - The return type for the generateBookCover function.
  */
@@ -12,12 +12,13 @@ import {z} from 'genkit';
 
 const GenerateBookCoverInputSchema = z.object({
   title: z.string().describe('The title of the book.'),
-  description: z.string().describe('A short description of the book.'),
+  author: z.string().describe('The author of the book.'),
+  description: z.string().describe('A short description of the book (not used for cover search).'),
 });
 export type GenerateBookCoverInput = z.infer<typeof GenerateBookCoverInputSchema>;
 
 const GenerateBookCoverOutputSchema = z.object({
-  coverImage: z.string().describe("The generated book cover image as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
+  coverImage: z.string().describe("The book cover image URL from Google Books or a placeholder."),
 });
 export type GenerateBookCoverOutput = z.infer<typeof GenerateBookCoverOutputSchema>;
 
@@ -31,20 +32,35 @@ const generateBookCoverFlow = ai.defineFlow(
     inputSchema: GenerateBookCoverInputSchema,
     outputSchema: GenerateBookCoverOutputSchema,
   },
-  async ({title, description}) => {
-    const {media} = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: `A beautiful and imaginative children's book cover for a book titled '${title}'. The story is about: ${description}. The style should be vibrant, whimsical, and friendly, suitable for a children's book. Do not include any text or words on the cover. The illustration should fill the entire frame.`,
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-      },
-    });
-    
-    if (!media?.url) {
-      // Fallback to a placeholder if image generation fails
-      return { coverImage: 'https://placehold.co/300x400.png' };
+  async ({title, author}) => {
+    const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
+    const placeholder = 'https://placehold.co/300x400.png';
+
+    if (!apiKey) {
+      console.error('Google Books API key is missing.');
+      return { coverImage: placeholder };
     }
 
-    return { coverImage: media.url };
+    const query = encodeURIComponent(`intitle:${title}+inauthor:${author}`);
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${query}&key=${apiKey}&fields=items(volumeInfo/imageLinks)`;
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Google Books API request failed with status ${response.status}`);
+      }
+      const data = await response.json();
+
+      const imageLinks = data.items?.[0]?.volumeInfo?.imageLinks;
+      const coverUrl = imageLinks?.thumbnail || imageLinks?.smallThumbnail;
+      
+      if (coverUrl) {
+         return { coverImage: coverUrl.replace(/^http:/, 'https:') };
+      }
+    } catch (error) {
+      console.error('Error fetching book cover from Google Books:', error);
+    }
+    
+    return { coverImage: placeholder };
   }
 );

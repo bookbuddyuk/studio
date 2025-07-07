@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BookCard } from '@/components/book-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { findBooksWithAi, findRandomBookWithAi } from '@/app/search/actions';
+import { findBooksWithAi, findRandomBookWithAi, searchBooksByKeyword } from '@/app/search/actions';
 import type { Book } from '@/lib/types';
 
 const aiSearchSchema = z.object({
@@ -32,13 +32,6 @@ const keywordSearchSchema = z.object({
   query: z.string().min(1, "Please enter a search term."),
 });
 
-const mockBooks: Book[] = [
-    { title: "The Very Hungry Caterpillar", author: "Eric Carle", description: "A classic story about a caterpillar's journey to becoming a butterfly.", ageRange: "2-5", coverImage: "https://placehold.co/300x400.png", aiHint: "caterpillar book" },
-    { title: "Where the Wild Things Are", author: "Maurice Sendak", description: "A boy named Max imagines a world of wild things.", ageRange: "4-8", coverImage: "https://placehold.co/300x400.png", aiHint: "monster book" },
-    { title: "Goodnight Moon", author: "Margaret Wise Brown", description: "A soothing bedtime story saying goodnight to everything in the room.", ageRange: "1-4", coverImage: "https://placehold.co/300x400.png", aiHint: "moon book" },
-    { title: "Harry Potter and the Sorcerer's Stone", author: "J.K. Rowling", description: "A young wizard discovers his magical heritage.", ageRange: "9-12", coverImage: "https://placehold.co/300x400.png", aiHint: "wizard book" },
-];
-
 const categories = ["Fiction", "Non-Fiction", "Picture Book", "Early Reader"];
 const genres = ["Adventure", "Fantasy", "Science Fiction", "Mystery", "Humor", "Animals"];
 const ageRanges = ["0-2 years", "3-5 years", "6-8 years", "9-12 years"];
@@ -47,7 +40,10 @@ export function SearchPageClient() {
   const [isPending, startTransition] = useTransition();
   const [aiResults, setAiResults] = useState<Book[] | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [keywordResults, setKeywordResults] = useState<Book[]>([]);
+
+  const [isKeywordPending, startKeywordTransition] = useTransition();
+  const [keywordResults, setKeywordResults] = useState<Book[] | null>(null);
+  const [keywordError, setKeywordError] = useState<string | null>(null);
 
   const [isRandomPending, startRandomTransition] = useTransition();
   const [randomBookResult, setRandomBookResult] = useState<Book | null>(null);
@@ -108,11 +104,16 @@ export function SearchPageClient() {
   };
 
   const handleKeywordSearch = (values: z.infer<typeof keywordSearchSchema>) => {
-    const filteredBooks = mockBooks.filter(book => 
-      book.title.toLowerCase().includes(values.query.toLowerCase()) ||
-      book.author.toLowerCase().includes(values.query.toLowerCase())
-    );
-    setKeywordResults(filteredBooks);
+    startKeywordTransition(async () => {
+      setKeywordError(null);
+      setKeywordResults(null);
+      try {
+        const results = await searchBooksByKeyword(values.query);
+        setKeywordResults(results);
+      } catch (error) {
+        setKeywordError(error instanceof Error ? error.message : "An unknown error occurred.");
+      }
+    });
   };
   
   return (
@@ -139,20 +140,41 @@ export function SearchPageClient() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit">
-                  <Search className="mr-2 h-4 w-4" />
-                  Search
+                <Button type="submit" disabled={isKeywordPending}>
+                  {isKeywordPending ? "Searching..." : <><Search className="mr-2 h-4 w-4" /> Search</>}
                 </Button>
               </form>
             </Form>
           </div>
           <div className="mt-8">
             <h3 className="text-xl font-bold mb-4">Results</h3>
-            {keywordResults.length > 0 ? (
+            {isKeywordPending && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-4">
+                    <Skeleton className="h-12 w-3/4" />
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="aspect-[3/4] w-full" />
+                    <Skeleton className="h-20 w-full" />
+                  </div>
+                ))}
+              </div>
+            )}
+            {keywordError && (
+              <Alert variant="destructive">
+                <Frown className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{keywordError}</AlertDescription>
+              </Alert>
+            )}
+            {keywordResults && keywordResults.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {keywordResults.map((book, index) => <BookCard key={`${book.title}-${index}`} book={book} />)}
                 </div>
-            ) : (
+            ) : keywordResults && (
+                <p className="text-muted-foreground">No books found for your search. Try different keywords.</p>
+            )}
+            {!isKeywordPending && !keywordResults && !keywordError && (
                 <p className="text-muted-foreground">Enter a search term to find books. Try "Harry Potter".</p>
             )}
           </div>
@@ -251,7 +273,7 @@ export function SearchPageClient() {
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a genre" />
-                            </SelectTrigger>
+                            </Trigger>
                           </FormControl>
                           <SelectContent>
                             {genres.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
@@ -271,7 +293,7 @@ export function SearchPageClient() {
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select an age range" />
-                            </SelectTrigger>
+                            </Trigger>
                           </FormControl>
                           <SelectContent>
                             {ageRanges.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
