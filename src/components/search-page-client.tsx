@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useTransition } from 'react';
@@ -18,7 +19,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { findBooksWithAi, findRandomBookWithAi, searchBooksByKeyword } from '@/app/search/actions';
 import type { Book } from '@/lib/types';
 
-// Schemas
 const aiSearchSchema = z.object({
   description: z.string().min(10, "Please provide a more detailed description.").max(500),
 });
@@ -33,12 +33,10 @@ const keywordSearchSchema = z.object({
   query: z.string().min(1, "Please enter a search term."),
 });
 
-// Constants
 const categories = ["Fiction", "Non-Fiction", "Picture Book", "Early Reader"];
 const genres = ["Adventure", "Fantasy", "Science Fiction", "Mystery", "Humor", "Animals"];
 const ageRanges = ["0-2 years", "3-5 years", "6-8 years", "9-12 years"];
 
-// Skeleton Component
 const BookCardSkeleton = () => (
   <div className="space-y-4">
     <Skeleton className="h-12 w-3/4" />
@@ -162,7 +160,7 @@ export function SearchPageClient() {
       </div>
     );
   };
-
+  
   const renderAiResults = () => {
     if (isAiPending) {
       return (
