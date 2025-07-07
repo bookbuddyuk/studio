@@ -12,6 +12,7 @@ import {
   Smile,
   Users,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +54,7 @@ const roles: { id: Role; label: string; icon: React.ElementType }[] = [
 export function LoginForm({ className }: { className?: string }) {
   const { toast } = useToast();
   const [role, setRole] = React.useState<Role>('student');
+  const router = useRouter();
   
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -63,12 +65,28 @@ export function LoginForm({ className }: { className?: string }) {
   });
 
   function onSubmit(values: z.infer<typeof loginSchema>) {
-    // This is a placeholder for actual login logic.
-    toast({
-      title: "Login Attempted",
-      description: `Role: ${role}\nEmail: ${values.email}`,
-    });
-    console.log({ ...values, role });
+    if (role === 'admin') {
+      if (values.email === 'admin@bookbuddy.uk' && values.password === 'test') {
+        toast({
+          title: "Login Successful",
+          description: "Welcome, Admin!",
+        });
+        router.push('/search');
+      } else {
+        toast({
+          variant: 'destructive',
+          title: "Login Failed",
+          description: "Invalid credentials for admin role.",
+        });
+      }
+    } else {
+      // This is a placeholder for actual login logic for other roles.
+      toast({
+        title: "Login Attempted",
+        description: `Role: ${role}\nEmail: ${values.email}`,
+      });
+      console.log({ ...values, role });
+    }
   }
 
   return (
