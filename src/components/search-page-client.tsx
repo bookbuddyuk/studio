@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from 'react';
-import { Search, Sparkles, Frown } from 'lucide-react';
+import { Search, Sparkles, Frown, Dices } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,15 +10,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BookCard } from '@/components/book-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { findBooksWithAi } from '@/app/search/actions';
+import { findBooksWithAi, findRandomBookWithAi } from '@/app/search/actions';
 import type { Book } from '@/lib/types';
 
 const aiSearchSchema = z.object({
   description: z.string().min(10, "Please provide a more detailed description.").max(500),
+});
+
+const randomSearchSchema = z.object({
+  category: z.string({ required_error: "Please select a category."}),
+  genre: z.string({ required_error: "Please select a genre."}),
+  readingAge: z.string({ required_error: "Please select a reading age."}),
 });
 
 const keywordSearchSchema = z.object({
@@ -32,15 +39,27 @@ const mockBooks: Book[] = [
     { title: "Harry Potter and the Sorcerer's Stone", author: "J.K. Rowling", description: "A young wizard discovers his magical heritage.", ageRange: "9-12", coverImage: "https://placehold.co/300x400.png", aiHint: "wizard book" },
 ];
 
+const categories = ["Fiction", "Non-Fiction", "Picture Book", "Early Reader"];
+const genres = ["Adventure", "Fantasy", "Science Fiction", "Mystery", "Humor", "Animals"];
+const ageRanges = ["0-2 years", "3-5 years", "6-8 years", "9-12 years"];
+
 export function SearchPageClient() {
   const [isPending, startTransition] = useTransition();
   const [aiResults, setAiResults] = useState<Book[] | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [keywordResults, setKeywordResults] = useState<Book[]>([]);
 
+  const [isRandomPending, startRandomTransition] = useTransition();
+  const [randomBookResult, setRandomBookResult] = useState<Book | null>(null);
+  const [randomBookError, setRandomBookError] = useState<string | null>(null);
+
   const aiForm = useForm<z.infer<typeof aiSearchSchema>>({
     resolver: zodResolver(aiSearchSchema),
     defaultValues: { description: "" },
+  });
+
+  const randomForm = useForm<z.infer<typeof randomSearchSchema>>({
+    resolver: zodResolver(randomSearchSchema),
   });
 
   const keywordForm = useForm<z.infer<typeof keywordSearchSchema>>({
@@ -64,6 +83,26 @@ export function SearchPageClient() {
         }
       } catch (error) {
         setAiError(error instanceof Error ? error.message : "An unknown error occurred.");
+      }
+    });
+  };
+
+  const handleRandomSearch = (values: z.infer<typeof randomSearchSchema>) => {
+    startRandomTransition(async () => {
+      setRandomBookError(null);
+      setRandomBookResult(null);
+      try {
+        const result = await findRandomBookWithAi(values);
+        if (result) {
+          const formattedResult: Book = {
+            ...result,
+            coverImage: `https://placehold.co/300x400.png`,
+            aiHint: 'book cover'
+          };
+          setRandomBookResult(formattedResult);
+        }
+      } catch (error) {
+        setRandomBookError(error instanceof Error ? error.message : "An unknown error occurred.");
       }
     });
   };
@@ -173,6 +212,108 @@ export function SearchPageClient() {
             )}
             {!isPending && !aiResults && !aiError && (
                 <p className="text-muted-foreground">Your AI-powered book suggestions will appear here.</p>
+            )}
+          </div>
+
+          <div className="mt-8 rounded-lg border bg-card p-6 shadow-sm">
+            <h2 className="text-2xl font-bold font-headline mb-2">Random Book Suggester</h2>
+            <p className="text-muted-foreground mb-4">Can't decide? Let us pick a random book for you based on your preferences.</p>
+            <Form {...randomForm}>
+              <form onSubmit={randomForm.handleSubmit(handleRandomSearch)} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={randomForm.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={randomForm.control}
+                    name="genre"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Genre</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a genre" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {genres.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={randomForm.control}
+                    name="readingAge"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reading Age</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an age range" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {ageRanges.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <Button type="submit" disabled={isRandomPending} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  {isRandomPending ? "Picking..." : <><Dices className="mr-2 h-4 w-4" /> Get Random Suggestion</>}
+                </Button>
+              </form>
+            </Form>
+          </div>
+          <div className="mt-8">
+            <h3 className="text-xl font-bold mb-4">Your Random Suggestion</h3>
+            {isRandomPending && (
+              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
+                  <div className="space-y-4">
+                    <Skeleton className="h-12 w-3/4" />
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="h-56 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                  </div>
+              </div>
+            )}
+            {randomBookError && (
+              <Alert variant="destructive">
+                <Frown className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{randomBookError}</AlertDescription>
+              </Alert>
+            )}
+            {randomBookResult && (
+              <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4">
+                <BookCard book={randomBookResult} />
+              </div>
+            )}
+            {!isRandomPending && !randomBookResult && !randomBookError && (
+                <p className="text-muted-foreground">Your random book suggestion will appear here.</p>
             )}
           </div>
         </TabsContent>
