@@ -10,5 +10,5 @@ export default function BookDetailsPage() {
 }
 
 export async function generateStaticParams() {
-  return [];
+  return [{ slug: 'dummy-book' }];
 }
