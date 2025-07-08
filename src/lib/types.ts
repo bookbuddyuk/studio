@@ -6,3 +6,8 @@ export interface Book {
   coverImage: string;
   aiHint: string;
 }
+
+export interface School {
+  id: string;
+  name:string;
+}

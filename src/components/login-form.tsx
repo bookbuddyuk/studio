@@ -32,12 +32,22 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { schools } from "@/lib/data";
 
 const loginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email." }),
+  email: z.string().optional(),
+  school: z.string().optional(),
+  username: z.string().optional(),
   password: z.string().min(1, { message: "Password is required." }),
 });
 
@@ -45,8 +55,8 @@ type Role = "student" | "teacher" | "parent" | "school" | "admin";
 
 const roles: { id: Role; label: string; icon: React.ElementType }[] = [
   { id: "student", label: "Student", icon: Smile },
-  { id: "teacher", label: "Teacher", icon: GraduationCap },
   { id: "parent", label: "Parent", icon: Users },
+  { id: "teacher", label: "Teacher", icon: GraduationCap },
   { id: "school", label: "School", icon: Building2 },
   { id: "admin", label: "Admin", icon: Shield },
 ];
@@ -60,34 +70,28 @@ export function LoginForm({ className }: { className?: string }) {
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
+      school: "",
+      username: "",
       password: "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof loginSchema>) {
-    if (role === 'admin') {
-      if (values.email === 'admin@bookbuddy.uk' && values.password === 'test') {
-        toast({
-          title: "Login Successful",
-          description: "Welcome, Admin!",
-        });
-        router.push('/search');
-      } else {
-        toast({
-          variant: 'destructive',
-          title: "Login Failed",
-          description: "Invalid credentials for admin role.",
-        });
-      }
-    } else {
-      // This is a placeholder for actual login logic for other roles.
-      toast({
-        title: "Login Attempted",
-        description: `Role: ${role}\nEmail: ${values.email}`,
-      });
-      console.log({ ...values, role });
-    }
+  const handleRoleChange = (value: string) => {
+    setRole(value as Role);
+    form.reset();
   }
+
+  function onSubmit(values: z.infer<typeof loginSchema>) {
+    // This is a placeholder for actual login logic.
+    // In a real app, you would call your authentication service here.
+    toast({
+      title: "Login Successful",
+      description: `Welcome! Redirecting to your dashboard.`,
+    });
+    router.push('/app');
+  }
+
+  const isStudentOrParent = role === 'student' || role === 'parent';
 
   return (
     <Card className={cn("w-full max-w-md shadow-xl", className)}>
@@ -98,7 +102,7 @@ export function LoginForm({ className }: { className?: string }) {
             <CardDescription>Choose your role and enter your credentials.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Tabs defaultValue={role} onValueChange={(value) => setRole(value as Role)} className="w-full">
+            <Tabs defaultValue={role} onValueChange={handleRoleChange} className="w-full">
               <TabsList className="grid w-full grid-cols-5 h-auto flex-wrap justify-center">
                 {roles.map(({ id, label, icon: Icon }) => (
                   <TabsTrigger key={id} value={id} className="flex flex-col h-20 gap-2 p-1 md:p-2">
@@ -108,19 +112,61 @@ export function LoginForm({ className }: { className?: string }) {
                 ))}
               </TabsList>
             </Tabs>
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="you@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
+            {isStudentOrParent ? (
+              <>
+                <FormField
+                  control={form.control}
+                  name="school"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>School</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your school" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {schools.map((school) => (
+                            <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Username</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter your username" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            ) : (
+               <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="you@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="password"
