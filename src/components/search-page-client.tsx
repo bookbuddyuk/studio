@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { findBooksWithAi } from '@/app/search/actions';
 import { BookCard } from '@/components/book-card';
 import type { Book } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,7 +32,8 @@ export function SearchPageClient() {
     setIsSearching(true);
     setResults([]);
     try {
-      const result = await findBooksWithAi(values.description);
+      // TODO: Call Firebase Function here to find books with AI
+      const result = { suggestions: [] }; // Placeholder
       setResults(result.suggestions || []);
     } catch (error: any) {
       toast({
