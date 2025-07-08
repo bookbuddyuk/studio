@@ -4,7 +4,7 @@ export interface Book {
   description: string;
   ageRange?: string;
   coverImage: string;
-  aiHint: string;
+  aiHint?: string;
 }
 
 export interface School {
