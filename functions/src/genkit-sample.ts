@@ -9,8 +9,9 @@ import {gemini20Flash} from "@genkit-ai/googleai";
 // Cloud Functions for Firebase supports Genkit natively. The onCallGenkit function creates a callable
 // function from a Genkit action. It automatically implements streaming if your flow does.
 // The https library also has other utility methods such as hasClaim, which verifies that
-// a caller's token has a specific claim (optionally matching a specific value)
-import { onCallGenkit, hasClaim } from "firebase-functions/https";
+// a caller's token has a specific claim (optionally matching a specific value).
+import * as functions from "firebase-functions";
+const { onCallGenkit, hasClaim } = functions.https;
 
 // Genkit models generally depend on an API key. APIs should be stored in Cloud Secret Manager so that
 // access to these sensitive values can be controlled. defineSecret does this for you automatically.
